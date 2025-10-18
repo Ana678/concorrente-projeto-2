@@ -6,9 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.PARAMETER)
-public @interface Param {
-
-    String name();
-
+@Target(ElementType.METHOD) 
+public @interface GetMapping {
+    String path();
 }

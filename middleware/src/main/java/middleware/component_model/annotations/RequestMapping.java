@@ -6,8 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface RemoteMethod {
+@Target(ElementType.TYPE)
+public @interface RequestMapping {
 
-    String name();
+    String path();
 }

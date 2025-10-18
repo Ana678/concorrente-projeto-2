@@ -5,11 +5,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 
 public class ServerRequestHandler implements Runnable {
 
@@ -29,7 +33,6 @@ public class ServerRequestHandler implements Runnable {
         new Thread(this).start();
     }
 
-
     public void stop() {
         this.running = false;
         try {
@@ -37,10 +40,10 @@ public class ServerRequestHandler implements Runnable {
                 serverSocket.close();
             }
         } catch (IOException e) {
-            System.err.println("Erro ao fechar o socket do servidor: " + e.getMessage());
+            System.err.println("Erro ao fechar o server socket: " + e.getMessage());
         } finally {
             pool.shutdown();
-            System.out.println("Servidor Middleware parado.");
+            System.out.println("Middleware server parado.");
         }
     }
 
@@ -48,14 +51,14 @@ public class ServerRequestHandler implements Runnable {
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
-            System.out.println("Servidor Middleware iniciado na porta " + port);
+            System.out.println("Middleware server iniciado na porta " + port);
             while (running) {
                 Socket clientSocket = serverSocket.accept();
                 pool.submit(() -> handleClient(clientSocket));
             }
         } catch (IOException e) {
             if (running) {
-                System.err.println("Erro crítico no ServerRequestHandler: " + e.getMessage());
+                System.err.println("Erro Crítico no ServerRequestHandler: " + e.getMessage());
             }
         } finally {
             if (!pool.isShutdown()) {
@@ -69,8 +72,7 @@ public class ServerRequestHandler implements Runnable {
             BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream(), StandardCharsets.UTF_8));
             PrintWriter writer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream(), StandardCharsets.UTF_8), true)
         ) {
-
-            // GET /algum/path HTTP/1.1
+            // "POST /messagestore/createGroup HTTP/1.1"
             String requestLine = reader.readLine();
             if (requestLine == null || requestLine.isEmpty()) return;
 
@@ -81,7 +83,7 @@ public class ServerRequestHandler implements Runnable {
             String path = parts[1];
             System.out.println("Received " + httpMethod + " request for path: " + path);
 
-            // cabeçalhos
+            // headers
             String headerLine;
             int contentLength = 0;
             while ((headerLine = reader.readLine()) != null && !headerLine.isEmpty()) {
@@ -103,18 +105,34 @@ public class ServerRequestHandler implements Runnable {
             String statusMessage = "OK";
 
             try {
-                responseBody = invoker.invoke(path, requestBody);
-            } catch (Exception e) {
-                e.printStackTrace();
+                responseBody = invoker.invoke(httpMethod, path, requestBody);
+            } catch (RouteNotFoundException e) {
+                statusCode = 404;
+                statusMessage = "Não Encontrado";
                 responseBody = "{\"error\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+                System.err.println("Erro do Cliente [404]: " + e.getMessage());
 
-                if (e.getMessage() != null && e.getMessage().contains("No remote object found")) {
-                    statusCode = 404;
-                    statusMessage = "Not Found";
-                } else {
-                    statusCode = 500;
-                    statusMessage = "Internal Server Error";
-                }
+            } catch (JsonProcessingException e) {
+                statusCode = 400;
+                statusMessage = "Requisição Inválida";
+                responseBody = "{\"error\": \"Formato JSON ou campos inválidos.\", \"details\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+                System.err.println("Erro do Cliente [400]: Requisição JSON inválida. " + e.getMessage());
+
+            } catch (InvocationTargetException e) {
+
+                statusCode = 500;
+                statusMessage = "Erro Interno do Servidor";
+                responseBody = "{\"error\": \"Erro ao executar a lógica de negócio.\", \"details\": \"" + e.getTargetException().getMessage().replace("\"", "'") + "\"}";
+                System.err.println("Erro do Servidor [500]: Exceção no método remoto. Detalhes:");
+                e.getTargetException().printStackTrace();
+
+            } catch (Exception e) {
+
+                statusCode = 500;
+                statusMessage = "Erro Interno do Servidor";
+                responseBody = "{\"error\": \"Ocorreu um erro inesperado.\", \"details\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+                System.err.println("Erro no Middleware [500]: " + e.getMessage());
+                e.printStackTrace();
             }
 
             // resposta
@@ -122,17 +140,17 @@ public class ServerRequestHandler implements Runnable {
             writer.println("Content-Type: application/json; charset=UTF-8");
             writer.println("Content-Length: " + responseBody.getBytes(StandardCharsets.UTF_8).length);
             writer.println("Connection: close");
-            writer.println(); // linha em branco
+            writer.println(); // Linha em branco
             writer.println(responseBody);
             writer.flush();
 
         } catch (IOException e) {
-            System.err.println("Erro ao processar requisição do cliente: " + e.getMessage());
+            System.err.println("Erro ao lidar com a requisição do cliente: " + e.getMessage());
         } finally {
             try {
                 clientSocket.close();
             } catch (IOException e) {
-                // Silently ignore
+                System.err.println("Erro ao fechar o socket do cliente: " + e.getMessage());
             }
         }
     }
