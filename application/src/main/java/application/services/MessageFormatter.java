@@ -6,7 +6,11 @@ import application.entity.Mensagem;
 
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
+import middleware.lifecycle.annotations.LifecyclePolicy;
+import middleware.lifecycle.annotations.LifecyclePolicyType;
+import middleware.lifecycle.annotations.Pooled;
 
+@LifecyclePolicy(LifecyclePolicyType.PER_REQUEST)
 @RequestMapping(path = "/formatter")
 public class MessageFormatter {
 

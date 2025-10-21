@@ -11,6 +11,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import middleware.lifecycle.annotations.LifecyclePolicy;
+import middleware.lifecycle.annotations.LifecyclePolicyType;
+import middleware.util.Log;
+
+@LifecyclePolicy(LifecyclePolicyType.STATIC_INSTANCE)
 @RequestMapping(path = "/messagestore")
 public class MessageStore {
     private final Map<String, LinkedList<Mensagem>> groupLogs = new ConcurrentHashMap<>();
@@ -19,7 +24,7 @@ public class MessageStore {
 
     public MessageStore(int logCapacity) {
         this.logCapacity = logCapacity;
-        System.out.println("MessageStore populado com dados de exemplo.");
+    Log.info("MessageStore", "MessageStore populado com dados de exemplo.");
 
         Grupo g1 = new Grupo("grupo-123", "Grupo de Teste");
         g1.adicionarMembro("user-Alice", "Alice");
@@ -66,7 +71,7 @@ public class MessageStore {
             return false;
         }
         activeGroups.put(data.getGroupId(), new Grupo(data.getGroupId(), data.getGroupName()));
-        System.out.println("[MessageStore] Grupo criado: " + data.getGroupId());
+    Log.info("MessageStore", "Grupo criado: %s", data.getGroupId());
         return true;
     }
 

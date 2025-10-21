@@ -2,27 +2,35 @@ package middleware.component_model.identification;
 
 import java.lang.reflect.Method;
 
+import middleware.lifecycle.annotations.LifecyclePolicyType;
+
 public class AbsoluteObjectReference {
 
-    private final ObjectId objectId;
-    private final Object remoteObject;
+    private final String basePath;
     private final Method method;
+    private final Class<?> remoteObjectClass; // PER_REQUEST
+    private final LifecyclePolicyType policyType;
 
-    public AbsoluteObjectReference(ObjectId objectId, Object remoteObject, Method method) {
-        this.objectId = objectId;
-        this.remoteObject = remoteObject;
+    public AbsoluteObjectReference(String basePath, Class<?> remoteObjectClass, Method method, LifecyclePolicyType policyType) {
+        this.basePath = basePath;
+        this.remoteObjectClass = remoteObjectClass;
         this.method = method;
+        this.policyType = policyType;
     }
 
-    public ObjectId getObjectId() {
-        return objectId;
+    public String getBasePath() {
+        return basePath;
     }
 
-    public Object getRemoteObject() {
-        return remoteObject;
+    public Class<?> getRemoteObjectClass() {
+        return remoteObjectClass;
     }
 
     public Method getMethod() {
         return method;
+    }
+
+    public LifecyclePolicyType getPolicyType() {
+        return policyType;
     }
 }

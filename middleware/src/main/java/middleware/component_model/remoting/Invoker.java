@@ -4,6 +4,9 @@ import java.lang.reflect.Method;
 
 import middleware.component_model.identification.AbsoluteObjectReference;
 import middleware.component_model.identification.Lookup;
+import middleware.lifecycle.LifecycleManager;
+import middleware.lifecycle.annotations.LifecyclePolicyType;
+import middleware.util.Log;
 
 
 // A função do Invoker é localizar um objeto remoto a partir de um caminho.
@@ -12,9 +15,11 @@ public class Invoker {
 
     private final Lookup lookup;
     private final Marshaller marshaller;
+    private final LifecycleManager lifecycleManager;
 
-    public Invoker(Lookup lookup) {
+    public Invoker(Lookup lookup, LifecycleManager lifecycleManager) {
         this.lookup = lookup;
+        this.lifecycleManager = lifecycleManager;
         // Instancia o Marshaller que usa Jackson
         this.marshaller = new JsonMarshaller();
     }
@@ -39,16 +44,29 @@ public class Invoker {
             throw new RouteNotFoundException("No remote method found for: " + lookupKey);
         }
 
-        Object targetObject = absoluteObject .getRemoteObject();
-        Method targetMethod = absoluteObject .getMethod();
+        Object targetObject = null;
+        LifecyclePolicyType policy = absoluteObject.getPolicyType();
 
-        // deserializa o corpo da requisição para os parâmetros do método
-        Object[] args = marshaller.unmarshal(requestBody, targetMethod);
+        try {
+            // Obter instância via LifecycleManager
+            targetObject = lifecycleManager.getInstance(absoluteObject);
+            Method targetMethod = absoluteObject.getMethod();
 
-        System.out.println("Invoking method: " + targetMethod.getName() + " on object: " + targetObject.getClass().getSimpleName());
-        Object result = targetMethod.invoke(targetObject, args);
+             // deserializa o corpo da requisição para os parâmetros do método
+            Object[] args = marshaller.unmarshal(requestBody, targetMethod);
 
-        // serializa o resultado
-        return marshaller.marshal(result);
+            Log.info("Invoker", "Invoking method: %s on object: %s (Policy: %s, Instance: %d)", targetMethod.getName(), targetObject.getClass().getSimpleName(), policy, targetObject.hashCode());
+
+            // Invocar o método
+            Object result = targetMethod.invoke(targetObject, args);
+
+            // Serializar resultado
+            return marshaller.marshal(result);
+
+        } finally {
+            if (targetObject != null) {
+                lifecycleManager.returnInstanceToPool(targetObject, policy);
+            }
+        }
     }
 }
