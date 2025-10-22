@@ -22,4 +22,9 @@ public final class Log {
             t.printStackTrace(System.err);
         }
     }
+
+    public static void warn(String origin, String message) {
+        System.out.println("[" + origin + "] WARNING: " + message);
+    }
+
 }

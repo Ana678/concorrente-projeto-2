@@ -4,6 +4,7 @@ import middleware.component_model.ComponentScanner;
 import middleware.component_model.identification.Lookup;
 import middleware.component_model.remoting.Invoker;
 import middleware.component_model.remoting.ServerRequestHandler;
+import middleware.extension.InvocationInterceptor;
 import middleware.lifecycle.LifecycleManager;
 import middleware.util.Log;
 
@@ -12,20 +13,28 @@ public class Middleware {
     private final ServerRequestHandler server;
     private final ComponentScanner scanner;
     private final LifecycleManager lifecycleManager;
+    private final Invoker invoker;
 
     public Middleware(int port) {
 
-    Log.info("Middleware", "Inicializando Middleware...");
+        Log.info("Middleware", "Inicializando Middleware...");
 
         this.lifecycleManager = new LifecycleManager();
 
         Lookup lookup = new Lookup();
-        Invoker invoker = new Invoker(lookup, lifecycleManager);
+        this.invoker = new Invoker(lookup, lifecycleManager);
 
         this.scanner = new ComponentScanner(lookup, lifecycleManager);
         this.server = new ServerRequestHandler(invoker, port);
 
-    Log.info("Middleware", "Componentes do Middleware inicializados.");
+        Log.info("Middleware", "Componentes do Middleware inicializados.");
+    }
+
+    public void addInterceptor(InvocationInterceptor interceptor) {
+        if (interceptor == null) return;
+
+        Log.info("Middleware", "Middleware registrando (via Interceptor): " + interceptor.getClass().getSimpleName());
+        this.invoker.addInterceptor(interceptor);
     }
 
     public void register(Object componentInstance) {

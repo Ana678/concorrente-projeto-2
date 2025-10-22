@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
 
 import middleware.lifecycle.annotations.LifecyclePolicy;
 import middleware.lifecycle.annotations.LifecyclePolicyType;
@@ -24,7 +25,7 @@ public class MessageStore {
 
     public MessageStore(int logCapacity) {
         this.logCapacity = logCapacity;
-    Log.info("MessageStore", "MessageStore populado com dados de exemplo.");
+        Log.info("MessageStore", "MessageStore populado com dados de exemplo.");
 
         Grupo g1 = new Grupo("grupo-123", "Grupo de Teste");
         g1.adicionarMembro("user-Alice", "Alice");
@@ -71,7 +72,7 @@ public class MessageStore {
             return false;
         }
         activeGroups.put(data.getGroupId(), new Grupo(data.getGroupId(), data.getGroupName()));
-    Log.info("MessageStore", "Grupo criado: %s", data.getGroupId());
+        Log.info("MessageStore", "Grupo criado: %s", data.getGroupId());
         return true;
     }
 
@@ -92,6 +93,11 @@ public class MessageStore {
     public Set<String> getMembros(@RequestBody GroupIdDTO data) {
         Grupo grupo = activeGroups.get(data.getGroupId());
         return (grupo != null) ? grupo.getMembros() : Set.of();
+    }
+
+    public boolean isMember(String groupId, String userId) {
+        Grupo grupo = activeGroups.get(groupId);
+        return (grupo != null) && grupo.getMembros().contains(userId);
     }
 
 }

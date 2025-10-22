@@ -1,5 +1,7 @@
 package application;
 
+import application.interceptors.AuthInterceptor;
+import application.interceptors.LoggingInterceptor;
 import middleware.Middleware;
 import middleware.util.Log;
 
@@ -13,6 +15,8 @@ public class Main {
 
         Log.info("Main", "Iniciando a plataforma de Middleware...");
         Middleware middleware = new Middleware(port);
+        middleware.addInterceptor(new LoggingInterceptor());
+        middleware.addInterceptor(new AuthInterceptor());
 
         Log.info("Main", "Criando instâncias dos serviços...");
         MessageStore store = new MessageStore(10);
@@ -26,6 +30,6 @@ public class Main {
 
         middleware.start();
 
-        Log.info("Main", "\nServidor iniciado na porta %d", port);
+        Log.info("Main", "Servidor iniciado na porta %d", port);
     }
 }

@@ -13,6 +13,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+
+import middleware.exceptions.AuthException;
+import middleware.exceptions.RouteNotFoundException;
 import middleware.util.Log;
 
 
@@ -107,7 +110,14 @@ public class ServerRequestHandler implements Runnable {
 
             try {
                 responseBody = invoker.invoke(httpMethod, path, requestBody);
-                } catch (RouteNotFoundException e) {
+
+            } catch (AuthException e) {
+                statusCode = 403;
+                statusMessage = "Acesso Negado";
+                responseBody = "{\"error\": \"" + e.getMessage().replace("\"", "'") + "\"}";
+                Log.warn("ServerRequestHandler", "Erro de Autorização [403]: " + e.getMessage());
+
+            }catch (RouteNotFoundException e) {
                 statusCode = 404;
                 statusMessage = "Não Encontrado";
                 responseBody = "{\"error\": \"" + e.getMessage().replace("\"", "'") + "\"}";
